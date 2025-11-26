@@ -1,1 +1,1 @@
-# wateanchat
+# ai_medical_chatbot
