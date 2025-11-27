@@ -25,9 +25,11 @@ except Exception as e:
     logger.error("مشكلة في doctors.json → " + str(e))
     DOCTORS = []
 
-GROQ_API_KEY = os.getenv("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", "")
-OPENAI_API_KEY = os.getenv("Osk-proj-IjT5Gkoz0sWQcFFCSl8RkjeKuX4imEBmebG7s3wBmMM7q0x37ykJu-yieuOVcuLDHbYaFSorI5T3BlbkFJRPBPnjFhimSISwMca8-eFVUXNJ845Hby0kU6EJ67HfEKP-11vo_u8QubyftRMLtaw7XX8MEBcA", "")
-
+GROQ_API_KEY = os.getenv("GROQ_API_KEY")
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+if not GROQ_API_KEY or not OPENAI_API_KEY:
+    logger.error("Missing API keys")
+    DOCTORS = []  # or raise error
 # --- RAG Embeddings ---
 embedding_model = SentenceTransformer("sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2")
 doctor_texts = [
@@ -183,8 +185,8 @@ async def exception_handler(request: Request, exc: Exception):
 
 if __name__ == "__main__":
     import uvicorn
-    import os
-    port = int(os.environ.get("PORT", 8000))  # Railway بيحدد الـ port تلقائي
-    uvicorn.run("main:app", host="0.0.0.0", port=port, log_level="info")
+    port = int(os.environ.get("PORT", 8000))
+    uvicorn.run("app:app", host="0.0.0.0", port=port, log_level="info", reload=False)
+
 
 
