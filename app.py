@@ -29,7 +29,7 @@ GROQ_API_KEY = os.getenv("gsk_mKJtBh8yvTahVyRlJXqRWGdyb3FYKlwok73bjcUTVRMDOSOPpc
 OPENAI_API_KEY = os.getenv("Osk-proj-IjT5Gkoz0sWQcFFCSl8RkjeKuX4imEBmebG7s3wBmMM7q0x37ykJu-yieuOVcuLDHbYaFSorI5T3BlbkFJRPBPnjFhimSISwMca8-eFVUXNJ845Hby0kU6EJ67HfEKP-11vo_u8QubyftRMLtaw7XX8MEBcA", "")
 
 # --- RAG Embeddings ---
-embedding_model = SentenceTransformer("sentence-transformers/all-MiniLM-L6-v2")
+embedding_model = SentenceTransformer("sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2")
 doctor_texts = [
     f"{d['full_name']} - {d['specialty']} - {d['location']} - {' '.join(d['days'])}" 
     for d in DOCTORS
@@ -186,4 +186,5 @@ if __name__ == "__main__":
     import os
     port = int(os.environ.get("PORT", 8000))  # Railway بيحدد الـ port تلقائي
     uvicorn.run("main:app", host="0.0.0.0", port=port, log_level="info")
+
 
