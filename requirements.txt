@@ -1,18 +1,12 @@
-fastapi==0.122.0
-uvicorn[standard]==0.38.0
-python-multipart==0.0.20
-python-dotenv==1.2.1
-requests==2.32.5
-Pillow==10.4.0
+fastapi
+uvicorn[standard]
+python-multipart
+python-dotenv
+requests
+Pillow
+scikit-learn
+numpy
 
-# PyTorch CPU-only (بدل النسخة الضخمة اللي مع CUDA)
-torch==2.4.1+cpu
-torchvision==0.19.1+cpu
-torchaudio==0.19.1+cpu
---extra-index-url https://download.pytorch.org/whl/cpu
-
-# sentence-transformers + transformers + إلخ
-sentence-transformers==3.2.1
-transformers==4.45.2
-scikit-learn==1.5.2
-numpy==2.0.2
+torch==2.4.1 --index-url https://download.pytorch.org/whl/cpu
+torchvision==0.19.1 --index-url https://download.pytorch.org/whl/cpu
+sentence-transformers
