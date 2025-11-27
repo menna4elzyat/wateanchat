@@ -3,13 +3,9 @@ uvicorn[standard]
 python-multipart
 python-dotenv
 requests
-Pillow==10.4.0
+Pillow
 numpy==1.26.4
 scikit-learn==1.5.2
-
-# إصدار مستقر 100% مع Python 3.12 + CPU (wheel متوفر وخفيف ~500 ميجا)
 torch==2.4.1 --index-url https://download.pytorch.org/whl/cpu
 torchvision==0.19.1 --index-url https://download.pytorch.org/whl/cpu
-
-# أخف إصدار من sentence-transformers (شغال مع torch 2.4.1، حجم ~200 ميجا)
 sentence-transformers==2.2.2
