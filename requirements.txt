@@ -7,9 +7,9 @@ Pillow==10.4.0
 numpy==1.26.4
 scikit-learn==1.5.2
 
-# أثبت وأخف وأسرع إصدار شغال 100% مع Python 3.12 على Railway
+# إصدار مستقر 100% مع Python 3.12 + CPU (wheel متوفر وخفيف ~500 ميجا)
 torch==2.4.1 --index-url https://download.pytorch.org/whl/cpu
 torchvision==0.19.1 --index-url https://download.pytorch.org/whl/cpu
 
-# أخف نموذج عربي ممتاز (حجم 90 ميجا بس بدل 1.2 جيجا)
+# أخف إصدار من sentence-transformers (شغال مع torch 2.4.1، حجم ~200 ميجا)
 sentence-transformers==2.2.2
