@@ -29,18 +29,29 @@ OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
 
 # البحث السريع جدًا في الأطباء
 def get_doctor(query: str):
-    q = query.lower().replace("ة", "ه").replace("ى", "ي")
-    triggers = ["مواعيد","موعد","حجز","كشف","دكتور","دكتوره","دكتورة","نسا","اسنان","جلديه","عظام","اطفال","دايت","سكر","دوالي","ليزر","تجميل","انف واذن","مخ واعصاب","تغذيه","نحافه","رجيم","حمل","توليد"]
-    if not any(t in q for t in triggers):
-        return None
-    for doc in DOCTORS:
-        if (doc["name"].lower() in q or 
-            doc["full_name"].lower() in q or 
-            doc["specialty"].lower() in q or 
-            q in doc["specialty"].lower()):
-            return doc
-    return None
+    q = query.lower().replace("ة", "ه").replace("ى", "ي").strip()
+    
+    # أي كلمة من دول موجودة في السؤال = رد من JSON فورًا حتى لو كتب "مواعيد دوام كريم 24 ساعة"
+    killer_words = [
+        "مواعيد", "موعد", "حجز", "كشف", "دكتور", "دكتوره", "دكتورة",
+        "كريم", "سارة", "أحمد", "منى", "علي", "ريم", "لمى", "عمرو", "نورا", "محمد",
+        "نسا", "نساء", "توليد", "حمل", "اسنان", "أسنان", "جلديه", "جلدية",
+        "تجميل", "ليزر", "عظام", "اطفال", "أطفال", "دايت", "سكر", "دوالي",
+        "انف واذن", "مخ واعصاب", "تغذيه", "نحافه", "رجيم", "جراحه"
+    ]
 
+    if any(word in q for word in killer_words):
+        for doc in DOCTORS:
+            if any(part in q for part in doc["name"].lower().split() + doc["full_name"].lower().split()):
+                return doc
+            if doc["specialty"].lower() in q or any(word in q for word in doc["specialty"].lower().split("+")):
+                return doc
+        # لو محدش لقى بس فيه كلمة من killer_words → نرجع أي دكتور من نفس التخصص لو لقينا
+        for doc in DOCTORS:
+            if any(k in q for k in doc["specialty"].lower().split()):
+                return doc
+
+    return None
 @app.get("/", response_class=HTMLResponse)
 async def home():
     return """
@@ -113,8 +124,8 @@ async def home():
 @app.post("/upload_and_query")
 async def upload_and_query(image: UploadFile = File(None), query: str = Form(...)):
     user_query = query.strip()
-
-    # أول حاجة: لو السؤال عن حجز أو دكتور → JSON فورًا
+    
+    # الحسم النهائي: أي سؤال فيه "كريم" أو "مواعيد" أو "دكتور" → JSON وخلاص
     doctor = get_doctor(user_query)
     if doctor:
         days = "، ".join(doctor["days"])
@@ -187,6 +198,7 @@ async def exception_handler(request: Request, exc: Exception):
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
+
 
 
 
