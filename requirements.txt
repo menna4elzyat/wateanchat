@@ -1,13 +1,12 @@
+--no-cache-dir
 fastapi
 uvicorn[standard]
 python-multipart
 python-dotenv
 requests
 Pillow
-
-# إصدارات حديثة ومتوافقة 100% مع Python 3.13 + CPU على Railway
-torch==2.7.1 --index-url https://download.pytorch.org/whl/cpu
-torchvision==0.22.1 --index-url https://download.pytorch.org/whl/cpu
-
-# الإصدار اللي بيشتغل معاهم بدون مشاكل
-sentence-transformers==3.1.1
+numpy==1.26.4
+scikit-learn==1.5.2
+torch==2.4.1 --index-url https://download.pytorch.org/whl/cpu
+torchvision==0.19.1 --index-url https://download.pytorch.org/whl/cpu
+sentence-transformers==3.0.1
