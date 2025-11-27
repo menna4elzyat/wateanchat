@@ -4,10 +4,14 @@ python-multipart
 python-dotenv
 requests
 Pillow
-scikit-learn
-numpy
 
-# دي الطريقة الوحيدة اللي شغالة دلوقتي مع Python 3.13 على Railway
+# نثبت numpy و scikit-learn الأول بإصدارات حديثة قبل torch
+numpy==2.1.2
+scikit-learn==1.5.2
+
+# بعد كده نجيب torch اللي بيدعم Python 3.13
 torch==2.5.0 --index-url https://download.pytorch.org/whl/cpu
 torchvision==0.20.0 --index-url https://download.pytorch.org/whl/cpu
-sentence-transformers
+
+# آخر حاجة sentence-transformers
+sentence-transformersrs
