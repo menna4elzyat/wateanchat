@@ -7,9 +7,5 @@ Pillow==10.4.0
 numpy==1.26.4
 scikit-learn==1.5.2
 
-# torch لـ Python 3.13 (الوحيد اللي شغال، مع +cpu للـ CPU-only)
-torch==2.5.0 --index-url https://download.pytorch.org/whl/cpu
-torchvision==0.20.0 --index-url https://download.pytorch.org/whl/cpu
-
-# sentence-transformers خفيفة ومتوافقة
-sentence-transformers==3.0.1
+# استبدال sentence-transformers + torch:
+fastembed==0.2.3
