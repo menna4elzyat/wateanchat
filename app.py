@@ -25,8 +25,8 @@ except Exception as e:
     logger.error("مشكلة في doctors.json → " + str(e))
     DOCTORS = []
 
-GROQ_API_KEY = os.getenv("GROQ_API_KEY", "")
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
+GROQ_API_KEY = os.getenv("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", "")
+OPENAI_API_KEY = os.getenv("Osk-proj-IjT5Gkoz0sWQcFFCSl8RkjeKuX4imEBmebG7s3wBmMM7q0x37ykJu-yieuOVcuLDHbYaFSorI5T3BlbkFJRPBPnjFhimSISwMca8-eFVUXNJ845Hby0kU6EJ67HfEKP-11vo_u8QubyftRMLtaw7XX8MEBcA", "")
 
 # --- RAG Embeddings ---
 embedding_model = SentenceTransformer("sentence-transformers/all-MiniLM-L6-v2")
@@ -184,3 +184,4 @@ async def exception_handler(request: Request, exc: Exception):
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
+
