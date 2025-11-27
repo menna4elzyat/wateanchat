@@ -1,4 +1,3 @@
---no-cache-dir
 fastapi
 uvicorn[standard]
 python-multipart
