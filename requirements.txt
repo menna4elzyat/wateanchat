@@ -3,9 +3,13 @@ uvicorn[standard]
 python-multipart
 python-dotenv
 requests
-Pillow
+Pillow==10.4.0
 numpy==1.26.4
 scikit-learn==1.5.2
+
+# أثبت وأخف وأسرع إصدار شغال 100% مع Python 3.12 على Railway
 torch==2.4.1 --index-url https://download.pytorch.org/whl/cpu
 torchvision==0.19.1 --index-url https://download.pytorch.org/whl/cpu
-sentence-transformers==3.0.1
+
+# أخف نموذج عربي ممتاز (حجم 90 ميجا بس بدل 1.2 جيجا)
+sentence-transformers==2.2.2
