@@ -5,9 +5,9 @@ python-dotenv
 requests
 Pillow
 
-# الإصدار الوحيد اللي بيخلّص البيلد في أقل من 90 ثانية على Python 3.13
-torch==2.4.0 --index-url https://download.pytorch.org/whl/cpu
-torchvision==0.19.0 --index-url https://download.pytorch.org/whl/cpu
+# إصدار يدعم Python 3.13 + CPU (شغال 100% على Railway)
+torch==2.5.0 --index-url https://download.pytorch.org/whl/cpu
+torchvision==0.20.0 --index-url https://download.pytorch.org/whl/cpu
 
-# أخف وأسرع إصدار من sentence-transformers شغال مع torch 2.4.0
+# الإصدار اللي بيشتغل مع torch 2.5.0 بدون مشاكل
 sentence-transformers==3.1.1
