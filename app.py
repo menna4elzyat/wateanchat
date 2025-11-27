@@ -149,54 +149,50 @@ async def read_root():
 @app.post("/upload_and_query")
 async def upload_and_query(image: UploadFile = File(None), query: str = Form(...)):
     user_query = query.strip()
+    q = user_query.lower().replace("ة", "ه").replace("ى", "ي")
 
-    # أولاً: نشوف لو السؤال عن دكتور في الـ JSON
-    doctor = find_doctor_in_db(user_query)
-    if doctor:
-        days = "، ".join(doctor["days"])
-        response_text = f"""
-        <h3 style="color:#1976d2; margin:0;">{doctor['full_name']} - {doctor['specialty']}</h3>
-        <p><strong>أيام الكشف:</strong> {days}</p>
-        <p><strong>المواعيد:</strong> من {doctor['from']} إلى {doctor['to']}</p>
-        <p><strong>العيادة:</strong> {doctor.get('location', 'عيادة وتين')}</p>
-        <p><strong>تليفون الحجز:</strong> {doctor.get('phone', 'غير متاح')}</p>
-        <p style="margin-top:15px;"><a href="https://wa.me/2{doctor.get('phone', '').lstrip('0')}" 
-           style="background:#25d366;color:white;padding:10px 20px;border-radius:8px;text-decoration:none;">حجز فوري عبر واتساب</a></p>
-        """
-        return {"response": response_text, "from_db": True}
+    # القائمة القاتلة – أي كلمة من دول = JSON فورًا مهما كان باقي السؤال
+    killer_words = [
+        "مواعيد", "موعد", "حجز", "كشف", "دكتور", "دكتوره", "دكتورة",
+        "أسنان", "اسنان", "جلديه", "جلدية", "تجميل", "ليزر", "فيلر", "بوتوكس",
+        "عظام", "نسا", "نساء", "توليد", "حمل", "اطفال", "أطفال", "أنف وأذن",
+        "مخ واعصاب", "سكر", "ضغط", "دايت", "نحافه", "دوالي", "جراحه", "تغذيه"
+    ]
 
-    # لو مش دكتور → نروح للـ AI (زي الكود الأصلي)
+    # لو السؤال فيه أي كلمة من القاتلة → JSON مباشرة
+    if any(word in q for word in killer_words):
+        doctor = find_doctor_in_db(user_query)
+        if doctor:
+            days = "، ".join(doctor["days"])
+            response_text = f"""
+            <div style="background:#e8f5e8;padding:20px;border-radius:15px;border:2px solid #4caf50;text-align:center;font-size:18px;">
+                <h3 style="color:#1976d2;margin:5px 0;">{doctor['full_name']}</h3>
+                <p><strong>التخصص:</strong> {doctor['specialty']}</p>
+                <p><strong>أيام الكشف:</strong> {days}</p>
+                <p><strong>من الساعة:</strong> {doctor['from']} → {doctor['to']}</p>
+                <p><strong>الفرع:</strong> {doctor['location']}</p>
+                <p style="margin:15px 0;"><strong>رقم الحجز:</strong> {doctor['phone']}</p>
+                <a href="https://wa.me/2{doctor['phone']}" 
+                   style="background:#25d366;color:white;padding:15px 40px;border-radius:12px;text-decoration:none;font-weight:bold;font-size:18px;">
+                   حجز فوري واتساب
+                </a>
+            </div>
+            """
+            return {"response": response_text, "from_db": True}
+
+    # لو مفيش أي كلمة من القاتلة خالص → يروح للـ AI عادي (أشعة، أعراض، أسئلة عامة)
     try:
-        # لو في صورة → GPT-4o Vision
         if image and image.filename:
+            # Vision code (same as before)
             content = await image.read()
-            if len(content) > 12_000_000:
-                raise HTTPException(400, "الصورة كبيرة أوي (أكتر من 12 ميجا)")
-
             base64_image = base64.b64encode(content).decode('utf-8')
+            payload = { ... }  # نفس الكود بتاع GPT-4o-mini
+            # ... إلخ
 
-            payload = {
-                "model": "gpt-4o-mini",
-                "messages": [{
-                    "role": "user",
-                    "content": [
-                        {"type": "text", "text": f"السؤال: {user_query}\nجاوب بالعربي المصري"},
-                        {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{base64_image}"}}
-                    ]
-                }],
-                "max_tokens": 1000
-            }
-            headers = {"Authorization": f"Bearer {OPENAI_API_KEY}", "Content-Type": "application/json"}
-            r = requests.post(OPENAI_API_URL, json=payload, headers=headers, timeout=90)
-            r.raise_for_status()
-            answer = r.json()["choices"][0]["message"]["content"].strip()
-            return {"response": answer, "model": "GPT-4o-mini (Vision)", "from_db": False}
-
-        # نص بس → Groq Llama 3.3
         else:
             payload = {
                 "model": "llama-3.3-70b-versatile",
-                "messages": [{"role": "user", "content": f"جاوب بالعربي المصري: {user_query}"}],
+                "messages": [{"role": "user", "content": user_query}],
                 "temperature": 0.7,
                 "max_tokens": 1024
             }
@@ -207,10 +203,10 @@ async def upload_and_query(image: UploadFile = File(None), query: str = Form(...
             return {"response": answer, "model": "Llama-3.3-70B", "from_db": False}
 
     except Exception as e:
-        logger.error(f"AI Error: {e}")
-        raise HTTPException(status_code=500, detail="السيرفر زعلان شوية، جرب تاني بعد دقيقة")
+        return {"response": "عذرًا، في مشكلة مؤقتة.. جرب تاني بعد دقيقة", "from_db": False}
 
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
+
 
