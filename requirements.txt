@@ -1,11 +1,15 @@
-fastapi
-uvicorn[standard]
-python-multipart
-python-dotenv
-requests
-Pillow
+fastapi==0.122.0
+uvicorn[standard]==0.38.0
+python-multipart==0.0.20
+python-dotenv==1.2.1
+requests==2.32.5
+Pillow==10.4.0
 numpy==1.26.4
 scikit-learn==1.5.2
-torch==2.4.1 --index-url https://download.pytorch.org/whl/cpu
-torchvision==0.19.1 --index-url https://download.pytorch.org/whl/cpu
-sentence-transformers==2.2.2
+
+# torch لـ Python 3.13 (الوحيد اللي شغال، مع +cpu للـ CPU-only)
+torch==2.5.0 --index-url https://download.pytorch.org/whl/cpu
+torchvision==0.20.0 --index-url https://download.pytorch.org/whl/cpu
+
+# sentence-transformers خفيفة ومتوافقة
+sentence-transformers==3.0.1
