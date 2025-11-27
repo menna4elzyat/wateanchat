@@ -32,15 +32,50 @@ OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 
 # دالة البحث عن الدكتور في الـ JSON
 def find_doctor_in_db(query: str):
-    q = query.lower().strip()
+    q = query.lower().strip().replace("ة", "ه")  # عشان "جلدية" = "جلديه"
+
+    # قاموس الكلمات المفتاحية لكل تخصص (مضبوط على 10 دكاترة اللي عملناهم)
+    keywords = {
+        "أسنان": ["أسنان", "اسنان", "دكتور اسنان", "دكتور أسنان", "تنظيف", "حشو", "تقويم", "زراعة", "تركيبات", "زرع", "ضرس", "ابتسامة", "تبييض"],
+        "جلدية وتجميل": ["جلدية", "جلديه", "تجميل", "ليزر", "بوتوكس", "فيلر", "دكتورة جلدية", "دكتور جلدية", "دكتوره جلديه", "هيدرافيشيال", "بلازما"],
+        "عظام": ["عظام", "عظم", "مفاصل", "كسور", "دكتور عظام", "خشونة", "غضاريف", "ركبة", "كتف", "ظهر"],
+        "نساء وتوليد": ["نسا", "نساء", "توليد", "حمل", "متابعة حمل", "دكتورة نسا", "دكتوره نسا", "سونار", "حوامل"],
+        "أطفال": ["أطفال", "اطفال", "باطنة اطفال", "دكتور اطفال", "برد اطفال", "لقاحات", "تطعيمات"],
+        "أنف وأذن وحنجرة": ["أنف وأذن", "انف واذن", "اذن", "حنجرة", "سماعات", "دكتور انف واذن", "زكام", "لوز"],
+        "مخ وأعصاب": ["مخ واعصاب", "اعصاب", "صداع", "دوخه", "دوار", "نوبات", "صرع", "دكتور مخ واعصاب"],
+        "باطنة وسكر": ["باطنه", "سكر", "ضغط", "غدد", "دكتورة باطنة", "سكري", "هرمونات"],
+        "جراحة عامة وليزر دوالي": ["دوالي", "جراحة", "ليزر دوالي", "جراح", "فتاق", "مرارة"],
+        "تغذية علاجية ونحافة": ["دايت", "نحافة", "زيادة وزن", "تغذية", "رجيم", "دكتورة دايت", "دكتوره تغذيه"]
+    }
+
     for doc in DOCTORS_DATA.get("doctors", []):
-        if (q in doc.get("name", "").lower() or 
-            # أحمد
-            q in doc.get("full_name", "").lower() or          # دكتور أحمد محمد
-            doc.get("specialty", "").lower() in q or          # أسنان
-            q in doc.get("specialty", "").lower()):           # جلدية
+        doc_spec = doc.get("specialty", "")
+
+        # 1. لو ذكر اسم الدكتور بالظبط
+        if any(part in q for part in doc.get("name", "").lower().split() + doc.get("full_name", "").lower().split()):
             return doc
+
+        # 2. لو سأل بالتخصص (الأهم)
+        for spec_key, words in keywords.items():
+            if doc_spec == spec_key and any(word in q for word in words):
+                return doc
+
     return None
+    for doc in DOCTORS_DATA.get("doctors", []):
+        doc_name = doc.get("name", "").lower()
+        doc_full = doc.get("full_name", "").lower()
+        doc_spec = doc.get("specialty", "").lower()
+
+        # لو ذكر اسم الدكتور صراحة
+        if any(word in q for word in [doc_name, doc_full]):
+            return doc
+
+        # لو سأل بالتخصص فقط (أهم حاجة)
+        for spec_ar, words in keywords.items():
+            if doc_spec == spec_ar and any(word in q for word in words):
+                return doc
+
+    return None  # لو مفيش تطابق خالص
 
 @app.get("/", response_class=HTMLResponse)
 async def read_root():
@@ -178,3 +213,4 @@ async def upload_and_query(image: UploadFile = File(None), query: str = Form(...
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
+
