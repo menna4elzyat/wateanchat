@@ -5,13 +5,9 @@ python-dotenv
 requests
 Pillow
 
-# نثبت numpy و scikit-learn الأول بإصدارات حديثة قبل torch
-numpy==2.1.2
-scikit-learn==1.5.2
+# الإصدار الوحيد اللي بيخلّص البيلد في أقل من 90 ثانية على Python 3.13
+torch==2.4.0 --index-url https://download.pytorch.org/whl/cpu
+torchvision==0.19.0 --index-url https://download.pytorch.org/whl/cpu
 
-# بعد كده نجيب torch اللي بيدعم Python 3.13
-torch==2.5.0 --index-url https://download.pytorch.org/whl/cpu
-torchvision==0.20.0 --index-url https://download.pytorch.org/whl/cpu
-
-# آخر حاجة sentence-transformers
-sentence-transformersrs
+# أخف وأسرع إصدار من sentence-transformers شغال مع torch 2.4.0
+sentence-transformers==3.1.1
