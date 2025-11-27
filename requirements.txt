@@ -5,9 +5,9 @@ python-dotenv
 requests
 Pillow
 
-# إصدار يدعم Python 3.13 + CPU (شغال 100% على Railway)
-torch==2.5.0 --index-url https://download.pytorch.org/whl/cpu
-torchvision==0.20.0 --index-url https://download.pytorch.org/whl/cpu
+# إصدارات حديثة ومتوافقة 100% مع Python 3.13 + CPU على Railway
+torch==2.7.1 --index-url https://download.pytorch.org/whl/cpu
+torchvision==0.22.1 --index-url https://download.pytorch.org/whl/cpu
 
-# الإصدار اللي بيشتغل مع torch 2.5.0 بدون مشاكل
+# الإصدار اللي بيشتغل معاهم بدون مشاكل
 sentence-transformers==3.1.1
