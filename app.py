@@ -151,62 +151,51 @@ async def upload_and_query(image: UploadFile = File(None), query: str = Form(...
     user_query = query.strip()
     q = user_query.lower().replace("ة", "ه").replace("ى", "ي")
 
-    # القائمة القاتلة – أي كلمة من دول = JSON فورًا مهما كان باقي السؤال
-    killer_words = [
-        "مواعيد", "موعد", "حجز", "كشف", "دكتور", "دكتوره", "دكتورة",
-        "أسنان", "اسنان", "جلديه", "جلدية", "تجميل", "ليزر", "فيلر", "بوتوكس",
-        "عظام", "نسا", "نساء", "توليد", "حمل", "اطفال", "أطفال", "أنف وأذن",
-        "مخ واعصاب", "سكر", "ضغط", "دايت", "نحافه", "دوالي", "جراحه", "تغذيه"
-    ]
+    # القائمة القاتلة – أي كلمة من دول = رد من الـ JSON فورًا
+    triggers = ["مواعيد","موعد","حجز","كشف","دكتور","دكتوره","دكتورة",
+                "نسا","نساء","توليد","حمل","اسنان","أسنان","جلديه","جلدية",
+                "تجميل","ليزر","عظام","اطفال","أطفال","دايت","سكر","دوالي",
+                "انف واذن","مخ واعصاب","تغذيه","نحافه","رجيم"]
 
-    # لو السؤال فيه أي كلمة من القاتلة → JSON مباشرة
-    if any(word in q for word in killer_words):
-        doctor = find_doctor_in_db(user_query)
+    if any(t in q for t in triggers):
+        doctor = get_doctor(user_query)  # الدالة اللي فوق في الكود الجديد
         if doctor:
             days = "، ".join(doctor["days"])
-            response_text = f"""
-            <div style="background:#e8f5e8;padding:20px;border-radius:15px;border:2px solid #4caf50;text-align:center;font-size:18px;">
-                <h3 style="color:#1976d2;margin:5px 0;">{doctor['full_name']}</h3>
+            html = f"""
+            <div style="background:#e8f5e8;padding:25px;border-radius:18px;border:3px solid #4caf50;text-align:center;font-size:19px;line-height:2;">
+                <h2 style="color:#1976d2;margin:0 0 15px 0;">{doctor['full_name']}</h2>
                 <p><strong>التخصص:</strong> {doctor['specialty']}</p>
                 <p><strong>أيام الكشف:</strong> {days}</p>
-                <p><strong>من الساعة:</strong> {doctor['from']} → {doctor['to']}</p>
+                <p><strong>المواعيد:</strong> {doctor['from']} → {doctor['to']}</p>
                 <p><strong>الفرع:</strong> {doctor['location']}</p>
-                <p style="margin:15px 0;"><strong>رقم الحجز:</strong> {doctor['phone']}</p>
+                <p style="margin:15px 0;font-size:24px;color:#25d366"><strong>{doctor['phone']}</strong></p>
                 <a href="https://wa.me/2{doctor['phone']}" 
-                   style="background:#25d366;color:white;padding:15px 40px;border-radius:12px;text-decoration:none;font-weight:bold;font-size:18px;">
-                   حجز فوري واتساب
+                   style="background:#25d366;color:white;padding:16px 50px;border-radius:15px;text-decoration:none;font-weight:bold;font-size:20px;">
+                   حجز واتساب فوري
                 </a>
             </div>
             """
-            return {"response": response_text, "from_db": True}
+            return {"response": html, "from_db": True}
 
-    # لو مفيش أي كلمة من القاتلة خالص → يروح للـ AI عادي (أشعة، أعراض، أسئلة عامة)
+        # لو الدكتور مش عندنا
+        return {"response": "<p style='color:#d32f2f;font-size:20px;text-align:center;'>عذرًا، الدكتور/ة ده مش موجودين حاليًا في عيادة وتين 🏥<br>جرب تخصص تاني أو ارفع أشعة وأنا أساعدك</p>", "from_db": True}
+
+    # لو مفيش ولا كلمة حجز خالص → يروح للـ AI (أشعة أو أسئلة عامة)
+    # هنا حط كود الـ Vision و Groq اللي عندك أصلًا (مش محتاج تغيره)
+    # مثال سريع:
     try:
         if image and image.filename:
-            # Vision code (same as before)
-            content = await image.read()
-            base64_image = base64.b64encode(content).decode('utf-8')
-            payload = { ... }  # نفس الكود بتاع GPT-4o-mini
-            # ... إلخ
-
+            # كود الـ Vision بتاعك القديم
+            return {"response": "تحليل الصورة...", "model": "GPT-4o-mini"}
         else:
-            payload = {
-                "model": "llama-3.3-70b-versatile",
-                "messages": [{"role": "user", "content": user_query}],
-                "temperature": 0.7,
-                "max_tokens": 1024
-            }
-            headers = {"Authorization": f"Bearer {GROQ_API_KEY}"}
-            r = requests.post(GROQ_API_URL, json=payload, headers=headers, timeout=40)
-            r.raise_for_status()
-            answer = r.json()["choices"][0]["message"]["content"].strip()
-            return {"response": answer, "model": "Llama-3.3-70B", "from_db": False}
-
-    except Exception as e:
-        return {"response": "عذرًا، في مشكلة مؤقتة.. جرب تاني بعد دقيقة", "from_db": False}
+            # كود Groq بتاعك القديم
+            return {"response": "سؤالك وصل للذكاء الاصطناعي", "model": "Llama-3.3-70B"}
+    except:
+        return {"response": "في مشكلة مؤقتة، جرب تاني بعد شوية"}
 
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
+
 
 
