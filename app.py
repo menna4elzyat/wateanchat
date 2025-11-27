@@ -1,13 +1,14 @@
 import json
 import base64
 import requests
-import io
 import logging
-from fastapi import FastAPI, File, UploadFile, Form, Request, HTTPException
+from fastapi import FastAPI, File, UploadFile, Form, Request
 from fastapi.responses import HTMLResponse, JSONResponse
-from PIL import Image
 from dotenv import load_dotenv
 import os
+from sentence_transformers import SentenceTransformer
+import numpy as np
+from sklearn.metrics.pairwise import cosine_similarity
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -15,7 +16,7 @@ load_dotenv()
 
 app = FastAPI()
 
-# تحميل الأطباء مرة واحدة بس
+# تحميل الأطباء مرة واحدة
 try:
     with open("doctors.json", "r", encoding="utf-8") as f:
         DOCTORS = json.load(f)["doctors"]
@@ -24,34 +25,27 @@ except Exception as e:
     logger.error("مشكلة في doctors.json → " + str(e))
     DOCTORS = []
 
-GROQ_API_KEY = os.getenv("GROQ_API_KEY", "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")
+GROQ_API_KEY = os.getenv("GROQ_API_KEY", "")
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
 
-# البحث السريع جدًا في الأطباء
-def get_doctor(query: str):
-    q = query.lower().replace("ة", "ه").replace("ى", "ي").strip()
-    
-    # أي كلمة من دول موجودة في السؤال = رد من JSON فورًا حتى لو كتب "مواعيد دوام كريم 24 ساعة"
-    killer_words = [
-        "مواعيد", "موعد", "حجز", "كشف", "دكتور", "دكتوره", "دكتورة",
-        "كريم", "سارة", "أحمد", "منى", "علي", "ريم", "لمى", "عمرو", "نورا", "محمد",
-        "نسا", "نساء", "توليد", "حمل", "اسنان", "أسنان", "جلديه", "جلدية",
-        "تجميل", "ليزر", "عظام", "اطفال", "أطفال", "دايت", "سكر", "دوالي",
-        "انف واذن", "مخ واعصاب", "تغذيه", "نحافه", "رجيم", "جراحه"
-    ]
+# --- RAG Embeddings ---
+embedding_model = SentenceTransformer("sentence-transformers/all-MiniLM-L6-v2")
+doctor_texts = [
+    f"{d['full_name']} - {d['specialty']} - {d['location']} - {' '.join(d['days'])}" 
+    for d in DOCTORS
+]
+doctor_embeddings = embedding_model.encode(doctor_texts, convert_to_numpy=True)
 
-    if any(word in q for word in killer_words):
-        for doc in DOCTORS:
-            if any(part in q for part in doc["name"].lower().split() + doc["full_name"].lower().split()):
-                return doc
-            if doc["specialty"].lower() in q or any(word in q for word in doc["specialty"].lower().split("+")):
-                return doc
-        # لو محدش لقى بس فيه كلمة من killer_words → نرجع أي دكتور من نفس التخصص لو لقينا
-        for doc in DOCTORS:
-            if any(k in q for k in doc["specialty"].lower().split()):
-                return doc
+def get_doctor_rag(query: str, threshold=0.55):
+    query_embed = embedding_model.encode([query], convert_to_numpy=True)
+    sims = cosine_similarity(query_embed, doctor_embeddings)[0]
+    best_idx = np.argmax(sims)
+    best_score = sims[best_idx]
+    if best_score < threshold:
+        return None
+    return DOCTORS[best_idx]
 
-    return None
+# --- HTML الصفحة الرئيسية ---
 @app.get("/", response_class=HTMLResponse)
 async def home():
     return """
@@ -86,7 +80,6 @@ async def home():
             </form>
             <div id="response" class="r"></div>
         </div>
-
         <script>
         document.getElementById('chatForm').onsubmit = async e => {
             e.preventDefault();
@@ -95,7 +88,6 @@ async def home():
             div.style.display = 'block';
             div.className = 'r';
             div.innerHTML = 'جاري التحميل...';
-
             try {
                 const res = await fetch('/upload_and_query', {method:'POST', body:fd});
                 if (!res.ok) {
@@ -121,12 +113,13 @@ async def home():
     </html>
     """
 
+# --- مسار رفع الصورة والسؤال ---
 @app.post("/upload_and_query")
 async def upload_and_query(image: UploadFile = File(None), query: str = Form(...)):
     user_query = query.strip()
     
-    # الحسم النهائي: أي سؤال فيه "كريم" أو "مواعيد" أو "دكتور" → JSON وخلاص
-    doctor = get_doctor(user_query)
+    # البحث باستخدام RAG
+    doctor = get_doctor_rag(user_query)
     if doctor:
         days = "، ".join(doctor["days"])
         html = f"""
@@ -145,21 +138,17 @@ async def upload_and_query(image: UploadFile = File(None), query: str = Form(...
         """
         return {"response": html, "from_db": True}
 
-    # لو مفيش دكتور → يروح للـ AI
+    # لو مفيش دكتور → نروح للـ AI
     try:
         if image and image.filename:
-            # GPT-4o Vision
             content = await image.read()
             b64 = base64.b64encode(content).decode()
             payload = {
                 "model": "gpt-4o-mini",
-                "messages": [{
-                    "role": "user",
-                    "content": [
-                        {"type": "text", "text": f"بالعربي المصري: {user_query}"},
-                        {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{b64}"}}
-                    ]
-                }],
+                "messages": [{"role": "user", "content": [
+                    {"type": "text", "text": f"بالعربي المصري: {user_query}"},
+                    {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{b64}"}}
+                ]}],
                 "max_tokens": 1000
             }
             r = requests.post("https://api.openai.com/v1/chat/completions",
@@ -169,9 +158,7 @@ async def upload_and_query(image: UploadFile = File(None), query: str = Form(...
             r.raise_for_status()
             ans = r.json()["choices"][0]["message"]["content"]
             return {"response": ans, "model": "GPT-4o-mini"}
-
         else:
-            # Groq Llama 3.3
             payload = {
                 "model": "llama-3.3-70b-versatile",
                 "messages": [{"role": "user", "content": f"جاوب بالعربي المصري: {user_query}"}],
@@ -185,12 +172,11 @@ async def upload_and_query(image: UploadFile = File(None), query: str = Form(...
             r.raise_for_status()
             ans = r.json()["choices"][0]["message"]["content"]
             return {"response": ans, "model": "Llama-3.3-70B"}
-
     except Exception as e:
         logger.error(str(e))
         return {"response": f"عذرًا حصل مشكلة مؤقتة: {str(e)[:100]}", "model": "خطأ"}
 
-# معالجة أي خطأ في السيرفر → رد JSON دايمًا
+# --- معالجة أي خطأ في السيرفر ---
 @app.exception_handler(Exception)
 async def exception_handler(request: Request, exc: Exception):
     return JSONResponse(status_code=500, content={"error": "خطأ داخلي", "detail": str(exc)})
@@ -198,8 +184,3 @@ async def exception_handler(request: Request, exc: Exception):
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
-
-
-
-
-
